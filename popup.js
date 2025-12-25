@@ -120,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Paste button - now supports Batch Sequence
     pasteBtn.addEventListener('click', async () => {
         const activeTab = document.querySelector('.tab-content.active').id;
+        const toolType = activeTab === 'tab-video' ? 'video' : 'image';
 
         // 1. Collect everything to paste
         let commonText = ""; // Background, Ratio, etc.
@@ -172,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             if (isBatch) {
-                runBatchGeneration(tab.id, commonText, shots, images);
+                runBatchGeneration(tab.id, commonText, shots, images, toolType);
             } else {
                 // Normal Single Paste
                 pasteBtn.innerHTML = '<span class="icon">⏳</span> Pasting...';
@@ -182,7 +183,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     action: "paste_with_images",
                     text: finalPrompt,
                     images: images,
-                    auto_submit: batchModeToggle?.checked // Single auto-submit if toggle is on
+                    auto_submit: batchModeToggle?.checked,
+                    tool_type: toolType
                 });
 
                 if (response && response.status === "success") {
@@ -200,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    async function runBatchGeneration(tabId, commonText, shots, images) {
+    async function runBatchGeneration(tabId, commonText, shots, images, toolType) {
         pasteBtn.disabled = true;
 
         for (let i = 0; i < shots.length; i++) {
@@ -218,12 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
             await chrome.tabs.sendMessage(tabId, {
                 action: "paste_with_images",
                 text: finalPrompt,
-                images: i === 0 ? images : [], // Only send images with the first shot to avoid re-uploading? 
-                // Actually, if we want consistency, maybe Gemini needs the images every time? 
-                // User said "อ้างอิงตามรูปแรก" - typically in Gemini you keep the conversation.
-                // If we keep conversation, we don't need to re-upload images.
                 images: i === 0 ? images : [],
-                auto_submit: true
+                auto_submit: true,
+                tool_type: i === 0 ? toolType : null // Only need to switch tool on first shot
             });
 
             saveToHistory(finalPrompt);

@@ -52,7 +52,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // NEW: Paste text AND images together
   if (request.action === "paste_with_images") {
-    pasteTextAndImages(request.text, request.images, request.auto_submit, sendResponse);
+    pasteTextAndImages(request.text, request.images, request.auto_submit, request.tool_type, sendResponse);
     return true; // Async response
   }
 
@@ -403,10 +403,69 @@ function pasteText(text, sendResponse) {
 
 
 // ==========================================
+// TOOL SELECTION AUTOMATION
+// ==========================================
+async function selectGeminiTool(toolName) {
+  try {
+    // 1. Check if ANY tool is already selected
+    const deselectBtn = document.querySelector('button.toolbox-drawer-item-deselect-button');
+    if (deselectBtn) {
+      const currentToolText = deselectBtn.innerText || "";
+      if (currentToolText.toLowerCase().includes(toolName.toLowerCase().split(' ')[1])) {
+        console.log(`Tool "${toolName}" is already active.`);
+        return;
+      }
+    }
+
+    // 2. Open Tools Menu
+    const toolsBtn = document.querySelector('button.toolbox-drawer-button, button[aria-label="Tools"]');
+    if (!toolsBtn) {
+      console.warn("Tools button not found");
+      return;
+    }
+
+    toolsBtn.click();
+    await new Promise(r => setTimeout(r, 600)); // Wait for menu
+
+    // 3. Find and click the specific tool
+    const menuItems = document.querySelectorAll('button.toolbox-drawer-item-list-button');
+    let targetBtn = null;
+    for (const btn of menuItems) {
+      if (btn.innerText.toLowerCase().includes(toolName.toLowerCase())) {
+        targetBtn = btn;
+        break;
+      }
+    }
+
+    if (targetBtn) {
+      console.log(`Clicking tool: ${toolName}`);
+      targetBtn.click();
+      await new Promise(r => setTimeout(r, 600));
+    } else {
+      console.warn(`Target tool "${toolName}" not found in menu`);
+      // Close menu if it's still open
+      toolsBtn.click();
+    }
+  } catch (err) {
+    console.error("selectGeminiTool failed:", err);
+  }
+}
+
+
+// ==========================================
 // PASTE TEXT AND IMAGES TOGETHER
 // ==========================================
-async function pasteTextAndImages(text, images, autoSubmit, sendResponse) {
+async function pasteTextAndImages(text, images, autoSubmit, toolType, sendResponse) {
   try {
+    // Stage 0: Select the Tool first
+    if (toolType) {
+      console.log(`Ensuring tool is selected: ${toolType}`);
+      const toolName = toolType === 'video' ? 'Create videos' : 'Create images';
+      await selectGeminiTool(toolName);
+      // Small pause after tool selection to let UI settle
+      await new Promise(r => setTimeout(r, 800));
+    }
+
     const editor = document.querySelector('div[contenteditable="true"][role="textbox"]');
     if (!editor) {
       sendResponse({ status: "error", message: "Editor not found" });
