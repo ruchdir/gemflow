@@ -100,6 +100,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 function processNextInBatch() {
   if (batchState.index >= batchState.urls.length) {
     console.log("Batch complete! Closing picker window.");
+
+    // Reset page visibility on the picker tab before closing or finishing
+    chrome.tabs.sendMessage(batchState.pickerTabId, { action: "reset_page_visibility" }).catch(() => { });
+
     batchState.isProcessing = false;
     chrome.windows.remove(batchState.pickerWindowId).catch(() => { });
     return;
@@ -125,6 +129,8 @@ function captureAndStore() {
       chrome.tabs.captureVisibleTab(batchState.pickerWindowId, { format: 'png' }, (dataUrl) => {
         if (chrome.runtime.lastError) {
           console.error("Capture failed:", chrome.runtime.lastError.message);
+          // Try to reset visibility even on failure
+          chrome.tabs.sendMessage(batchState.pickerTabId, { action: "reset_page_visibility" }).catch(() => { });
           batchState.index++;
           setTimeout(processNextInBatch, 1000);
         } else {

@@ -39,6 +39,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Shots / Variations Logic
+    const addShotBtn = document.getElementById('addShotBtn');
+    const shotsContainer = document.getElementById('shotsContainer');
+    const batchModeToggle = document.getElementById('batchModeToggle');
+
+    let shotCount = 1;
+
+    addShotBtn.addEventListener('click', () => {
+        shotCount++;
+        let defaultValue = `Shot ${shotCount}: `;
+        if (shotCount === 2) defaultValue = "Shot 2: Side View showing the product clearly";
+        if (shotCount === 3) defaultValue = "Shot 3: Bottom View showing the product clearly";
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'shot-input-wrapper';
+        wrapper.innerHTML = `
+            <input type="text" class="shot-input" placeholder="Shot ${shotCount}: e.g. Side view" value="${defaultValue}">
+            <button type="button" class="mini-icon-btn remove-shot-btn" title="Remove shot">−</button>
+        `;
+        shotsContainer.appendChild(wrapper);
+
+        wrapper.querySelector('.remove-shot-btn').onclick = () => {
+            wrapper.remove();
+        };
+    });
+
     // Load stored images on panel open
     loadStoredImages();
     renderLibrary();
@@ -91,71 +117,132 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Paste button - now sends text AND images
+    // Paste button - now supports Batch Sequence
     pasteBtn.addEventListener('click', async () => {
-        let combinedText = "";
         const activeTab = document.querySelector('.tab-content.active').id;
+
+        // 1. Collect everything to paste
+        let commonText = ""; // Background, Ratio, etc.
+        let shots = []; // Individual variations
+        let images = [];
 
         if (activeTab === 'tab-image') {
             const coreInstruction = document.getElementById('prompt1').value.trim();
             const background = document.getElementById('bgSelect').value.trim();
             const additionalDetails = document.getElementById('prompt3').value.trim();
 
-            combinedText = coreInstruction;
-            if (background) combinedText += `\nBackground: ${background}`;
-            if (selectedRatio) combinedText += `\nAspect Ratio: ${selectedRatio}`;
-            if (additionalDetails) combinedText += `\nAdditional Details: ${additionalDetails}`;
+            commonText = coreInstruction;
+            if (background) commonText += `\nBackground: ${background}`;
+            if (selectedRatio) commonText += `\nAspect Ratio: ${selectedRatio}`;
+            if (additionalDetails) commonText += `\nAdditional Details: ${additionalDetails}`;
+
+            // Get all shots
+            const shotInputs = document.querySelectorAll('.shot-input');
+            shotInputs.forEach(input => {
+                if (input.value.trim()) shots.push(input.value.trim());
+            });
+            if (shots.length === 0) shots.push(""); // Fallback if no shots defined
         } else if (activeTab === 'tab-video') {
             const videoInstruction = document.getElementById('videoPrompt').value.trim();
             const videoStyle = document.getElementById('videoStyle').value.trim();
 
-            combinedText = videoInstruction;
-            if (videoStyle) combinedText += `\nStyle/Atmosphere: ${videoStyle}`;
+            commonText = videoInstruction;
+            if (videoStyle) commonText += `\nStyle/Atmosphere: ${videoStyle}`;
+            shots = [""]; // No shots for video yet
         }
 
         // Get stored images
-        const result = await chrome.storage.local.get(['selectedImages']);
-        const images = result.selectedImages || [];
+        const storageResult = await chrome.storage.local.get(['selectedImages']);
+        images = storageResult.selectedImages || [];
 
-        if (combinedText.length === 0 && images.length === 0) {
+        if (commonText.length === 0 && images.length === 0) {
             pasteBtn.textContent = "Add text or images!";
             setTimeout(() => pasteBtn.innerHTML = '<span class="icon">✨</span> Paste to Ask Gemini', 2000);
             return;
         }
 
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!tab) return;
-
-        if (!tab.url.includes("gemini.google.com")) {
-            pasteBtn.textContent = "Not on Gemini!";
+        if (!tab || !tab.url.includes("gemini.google.com")) {
+            pasteBtn.textContent = "Open Gemini Tab!";
             setTimeout(() => pasteBtn.innerHTML = '<span class="icon">✨</span> Paste to Ask Gemini', 2000);
             return;
         }
 
+        const isBatch = batchModeToggle?.checked && shots.length > 1;
+
         try {
-            pasteBtn.innerHTML = '<span class="icon">⏳</span> Pasting...';
-
-            const response = await chrome.tabs.sendMessage(tab.id, {
-                action: "paste_with_images",
-                text: combinedText,
-                images: images
-            });
-
-            if (response && response.status === "success") {
-                pasteBtn.innerHTML = '<span class="icon">✅</span> Pasted!';
-                saveToHistory(combinedText);
-                // Clear images after successful paste (optional)
-                // chrome.storage.local.set({ selectedImages: [] });
+            if (isBatch) {
+                runBatchGeneration(tab.id, commonText, shots, images);
             } else {
-                pasteBtn.textContent = "Failed";
+                // Normal Single Paste
+                pasteBtn.innerHTML = '<span class="icon">⏳</span> Pasting...';
+                const finalPrompt = shots[0] ? `${commonText}\n${shots[0]}` : commonText;
+
+                const response = await chrome.tabs.sendMessage(tab.id, {
+                    action: "paste_with_images",
+                    text: finalPrompt,
+                    images: images,
+                    auto_submit: batchModeToggle?.checked // Single auto-submit if toggle is on
+                });
+
+                if (response && response.status === "success") {
+                    pasteBtn.innerHTML = '<span class="icon">✅</span> Pasted!';
+                    saveToHistory(finalPrompt);
+                } else {
+                    pasteBtn.textContent = "Failed";
+                }
+                setTimeout(() => pasteBtn.innerHTML = '<span class="icon">✨</span> Paste to Ask Gemini', 2500);
             }
-            setTimeout(() => pasteBtn.innerHTML = '<span class="icon">✨</span> Paste to Ask Gemini', 2500);
         } catch (err) {
             console.error(err);
             pasteBtn.textContent = "Error";
             setTimeout(() => pasteBtn.innerHTML = '<span class="icon">✨</span> Paste to Ask Gemini', 2000);
         }
     });
+
+    async function runBatchGeneration(tabId, commonText, shots, images) {
+        pasteBtn.disabled = true;
+
+        for (let i = 0; i < shots.length; i++) {
+            let finalPrompt = "";
+            if (i === 0) {
+                finalPrompt = shots[i] ? `${commonText}\n${shots[i]}` : commonText;
+            } else {
+                finalPrompt = shots[i];
+                if (!finalPrompt.trim()) continue; // Skip empty shots after the first one
+            }
+
+            pasteBtn.innerHTML = `<span class="icon">⏳</span> Shot ${i + 1}/${shots.length}...`;
+
+            // 1. Paste and Auto-Submit
+            await chrome.tabs.sendMessage(tabId, {
+                action: "paste_with_images",
+                text: finalPrompt,
+                images: i === 0 ? images : [], // Only send images with the first shot to avoid re-uploading? 
+                // Actually, if we want consistency, maybe Gemini needs the images every time? 
+                // User said "อ้างอิงตามรูปแรก" - typically in Gemini you keep the conversation.
+                // If we keep conversation, we don't need to re-upload images.
+                images: i === 0 ? images : [],
+                auto_submit: true
+            });
+
+            saveToHistory(finalPrompt);
+
+            // 2. Wait for generation to finish
+            if (i < shots.length - 1) {
+                pasteBtn.innerHTML = `<span class="icon">⏳</span> Waiting for Gemini...`;
+                const status = await chrome.tabs.sendMessage(tabId, { action: "monitor_generation" });
+                console.log(`Shot ${i + 1} finished with status:`, status);
+
+                // Extra pause for safety
+                await new Promise(r => setTimeout(r, 3000));
+            }
+        }
+
+        pasteBtn.disabled = false;
+        pasteBtn.innerHTML = '<span class="icon">✅</span> Batch Done!';
+        setTimeout(() => pasteBtn.innerHTML = '<span class="icon">✨</span> Paste to Ask Gemini', 3000);
+    }
 
     // Clear button - clears Gemini chat AND stored images
     clearBtn.addEventListener('click', async () => {

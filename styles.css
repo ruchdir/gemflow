@@ -362,3 +362,104 @@ button:active {
 #favBtn.active .icon {
   color: #f85149;
 }
+
+/* Shots / Variations */
+.label-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.mini-icon-btn {
+  background: #21262d;
+  color: var(--accent-color);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.mini-icon-btn:hover {
+  background: #30363d;
+}
+
+.shots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shot-input-wrapper {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.shot-input {
+  flex: 1;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--text-color);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.shot-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+/* Toggle Switch */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px 0;
+}
+
+.toggle-container input {
+  display: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background-color: #30363d;
+  border-radius: 20px;
+  margin-right: 10px;
+  transition: .4s;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: .4s;
+}
+
+input:checked+.toggle-slider {
+  background-color: var(--accent-color);
+}
+
+input:checked+.toggle-slider:before {
+  transform: translateX(16px);
+}
+
+.toggle-label {
+  font-size: 13px;
+  color: var(--text-color);
+}

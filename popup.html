@@ -25,13 +25,19 @@
     <div id="tab-image" class="tab-content active">
       <div class="input-group">
         <label for="prompt1">Core Instruction</label>
-        <textarea id="prompt1">Create images 4K. Remove every text and human from the original image.</textarea>
+        <textarea id="prompt1">Create a photorealistic 4K product photograph based strictly on the provided reference image.
+        The original text printed directly onto the product itself must remain intact.
+        All external overlays, UI icons, extra text, and people must be completely removed.
+        A male hand, with only the strap of a smartwatch visible onthe wrist.
+        </textarea>
       </div>
 
       <div class="input-group">
         <label for="bgSelect">Background Scene</label>
         <select id="bgSelect">
-          <option value="Minimal Computer Desk in Studio Light">Minimal Computer Desk in Studio Light</option>
+          <option
+            value="Minimalist computer desk setup lit by professional studio lighting and vibrant RGB accent lights">
+            Minimalist computer desk setup lit by professional studio lighting and vibrant RGB accent lights</option>
           <option value="Balcony Sea View with a good light">Balcony Sea View with a good light</option>
           <option value="Mountain with a good light">Mountain with a good light</option>
           <option value="Modern Kitchen with a Studio Light">Modern Kitchen with a Studio Light</option>
@@ -47,6 +53,27 @@
           <button type="button" class="ratio-btn" data-ratio="1:1">1:1</button>
           <button type="button" class="ratio-btn active" data-ratio="9:16">9:16</button>
         </div>
+      </div>
+
+      <div class="input-group">
+        <div class="label-with-action">
+          <label>Shots / Variations</label>
+          <button type="button" id="addShotBtn" class="mini-icon-btn" title="Add another shot">+</button>
+        </div>
+        <div id="shotsContainer" class="shots-list">
+          <div class="shot-input-wrapper">
+            <input type="text" class="shot-input" placeholder="Shot 1: e.g. Front view"
+              value="Shot 1: Front View showing the product clearly">
+          </div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="toggle-container">
+          <input type="checkbox" id="batchModeToggle">
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">Auto-Submit Sequence</span>
+        </label>
       </div>
 
       <div class="input-group">

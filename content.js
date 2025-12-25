@@ -52,8 +52,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // NEW: Paste text AND images together
   if (request.action === "paste_with_images") {
-    pasteTextAndImages(request.text, request.images, sendResponse);
+    pasteTextAndImages(request.text, request.images, request.auto_submit, sendResponse);
     return true; // Async response
+  }
+
+  // NEW: Monitor for generation completion
+  if (request.action === "monitor_generation") {
+    startGenerationMonitor(sendResponse);
+    return true;
+  }
+
+  if (request.action === "reset_page_visibility") {
+    const gemflowUI = document.querySelectorAll('.gemflow-ui');
+    gemflowUI.forEach(el => el.style.visibility = 'visible');
+    const bodyChildren = document.body.children;
+    for (let i = 0; i < bodyChildren.length; i++) {
+      bodyChildren[i].style.visibility = 'visible';
+    }
+    const overlay = document.getElementById('capture-overlay');
+    if (overlay) overlay.style.display = 'none';
+    sendResponse({ status: "reset" });
+    return true;
   }
 
   return true;
@@ -102,6 +121,7 @@ if (window.location.href.includes("/mystuff")) {
   function updateSendButton() {
     if (selectedUrls.length > 0) {
       sendContainer.style.display = 'flex';
+      sendContainer.classList.add('gemflow-ui');
       sendBtn.textContent = `Send ${selectedUrls.length} Image${selectedUrls.length > 1 ? 's' : ''}`;
       sendBtn.disabled = false;
     } else {
@@ -128,6 +148,7 @@ if (window.location.href.includes("/mystuff")) {
 
       // Create button container
       const btnContainer = document.createElement('div');
+      btnContainer.classList.add('gemflow-ui');
       btnContainer.style.cssText = `
                 position: absolute; top: 8px; right: 8px; z-index: 99999;
                 display: flex; gap: 6px;
@@ -218,15 +239,18 @@ if (window.location.href.includes("/mystuff")) {
 // OVERLAY FOR CAPTURE
 // ==========================================
 function showOverlayAndSignalReady(url) {
-  // HIDE all extension UI elements before capture
-  const elementsToHide = document.querySelectorAll('#picker-fab, #send-selected-container, [style*="position: absolute"][style*="z-index: 99999"]');
-  elementsToHide.forEach(el => el.style.display = 'none');
+  console.log("Overlay: Preparing capture for", url);
 
-  // Also hide the page content completely
-  const pageContent = document.body.children;
-  for (let i = 0; i < pageContent.length; i++) {
-    if (pageContent[i].id !== 'capture-overlay') {
-      pageContent[i].style.visibility = 'hidden';
+  // 1. HIDE ALL Extension UI and Page Content
+  const gemflowUI = document.querySelectorAll('.gemflow-ui');
+  gemflowUI.forEach(el => el.style.visibility = 'hidden');
+
+  // Hide all direct children of body except overlay
+  const bodyChildren = document.body.children;
+  for (let i = 0; i < bodyChildren.length; i++) {
+    const child = bodyChildren[i];
+    if (child.id !== 'capture-overlay' && child.tagName !== 'SCRIPT') {
+      child.style.visibility = 'hidden';
     }
   }
 
@@ -237,50 +261,55 @@ function showOverlayAndSignalReady(url) {
     document.body.appendChild(overlay);
   }
 
-  // Reset overlay to loading state
+  // Overlay state: Black background while loading
   overlay.style.cssText = `
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background: #000; z-index: 2147483647; 
     display: flex; justify-content: center; align-items: center;
+    visibility: visible;
   `;
-  overlay.innerHTML = '<div style="color:#888;font-size:24px;">Loading...</div>';
+  overlay.innerHTML = '<div style="color:#888;font-size:24px;">Loading Capture...</div>';
 
-  const img = document.createElement('img');
-  img.src = url;
+  const img = new Image();
 
+  // Set onload BEFORE src to catch cached or fast-loading images
   img.onload = () => {
-    console.log(`Image loaded: ${img.naturalWidth}x${img.naturalHeight}`);
+    console.log(`Overlay: Image loaded ${img.naturalWidth}x${img.naturalHeight}`);
 
-    // Make overlay exactly match image size
+    // Fit overlay to image
     overlay.style.cssText = `
       position: fixed; top: 0; left: 0; 
       width: ${img.naturalWidth}px; height: ${img.naturalHeight}px;
       background: transparent; z-index: 2147483647; 
-      overflow: hidden;
+      overflow: hidden; visibility: visible;
     `;
     overlay.innerHTML = '';
 
-    // Image at natural size
-    img.style.cssText = `width: 100%; height: 100%;`;
+    img.style.cssText = `width: 100%; height: 100%; display: block;`;
     overlay.appendChild(img);
 
-    // Tell background to resize window and capture
+    // Give a small moment for rendering then signal background
     setTimeout(() => {
       chrome.runtime.sendMessage({
         action: "resize_and_capture",
         width: img.naturalWidth,
         height: img.naturalHeight
       });
-    }, 500);
+    }, 400);
   };
 
   img.onerror = () => {
-    console.error("Failed to load:", url);
-    chrome.runtime.sendMessage({ action: "ready_for_capture" });
+    console.error("Overlay: Failed to load image:", url);
+    // Cleanup and tell background to skip
+    if (overlay) overlay.style.display = 'none';
+    const bodyChildren = document.body.children;
+    for (let i = 0; i < bodyChildren.length; i++) {
+      bodyChildren[i].style.visibility = 'visible';
+    }
+    chrome.runtime.sendMessage({ action: "ready_for_capture" }); // Forces move to next
   };
 
-  overlay.innerHTML = '';
-  overlay.appendChild(img);
+  img.src = url;
 }
 
 
@@ -376,7 +405,7 @@ function pasteText(text, sendResponse) {
 // ==========================================
 // PASTE TEXT AND IMAGES TOGETHER
 // ==========================================
-async function pasteTextAndImages(text, images, sendResponse) {
+async function pasteTextAndImages(text, images, autoSubmit, sendResponse) {
   try {
     const editor = document.querySelector('div[contenteditable="true"][role="textbox"]');
     if (!editor) {
@@ -401,35 +430,45 @@ async function pasteTextAndImages(text, images, sendResponse) {
         console.log(`Pasting image ${i + 1}/${images.length}...`);
 
         try {
-          // Convert data URL to blob
-          const response = await fetch(dataUrl);
-          const blob = await response.blob();
-
-          // Create a File object
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
           const file = new File([blob], `image_${i + 1}.png`, { type: blob.type });
-
-          // Create DataTransfer with the file
           const dataTransfer = new DataTransfer();
           dataTransfer.items.add(file);
 
-          // Create and dispatch paste event
           const pasteEvent = new ClipboardEvent('paste', {
-            bubbles: true,
-            cancelable: true,
-            clipboardData: dataTransfer
+            bubbles: true, cancelable: true, clipboardData: dataTransfer
           });
 
           editor.focus();
           editor.dispatchEvent(pasteEvent);
+          console.log(`Image ${i + 1} pasted`);
 
-          console.log(`Image ${i + 1} pasted via DataTransfer`);
-
-          // Wait for Gemini to process
           await new Promise(r => setTimeout(r, 1000));
         } catch (imgErr) {
-          console.error(`Failed to paste image ${i + 1}:`, imgErr);
+          console.error(`Failed image ${i + 1}:`, imgErr);
         }
       }
+    }
+
+    // Step 3: Auto-Submit if requested
+    if (autoSubmit) {
+      console.log("Auto-submitting - waiting for button to be enabled...");
+      // Wait up to 10 seconds for the send button to become enabled (images might be uploading)
+      let submitAttempts = 0;
+      const submitInterval = setInterval(() => {
+        const sendBtn = document.querySelector('button[aria-label*="Send"], [data-test-id="send-button"]');
+        if (sendBtn && !sendBtn.disabled) {
+          console.log("Send button enabled, clicking!");
+          sendBtn.click();
+          clearInterval(submitInterval);
+        }
+        submitAttempts++;
+        if (submitAttempts > 100) {
+          console.warn("Auto-submit timed out waiting for enabled button");
+          clearInterval(submitInterval);
+        }
+      }, 100);
     }
 
     sendResponse({ status: "success" });
@@ -439,3 +478,79 @@ async function pasteTextAndImages(text, images, sendResponse) {
   }
 }
 
+// ==========================================
+// GENERATION MONITOR
+// ==========================================
+let generationObserver = null;
+
+function startGenerationMonitor(sendResponse) {
+  if (generationObserver) generationObserver.disconnect();
+  console.log("Generation monitor started...");
+
+  let generationStarted = false;
+  let pollCount = 0;
+  let idleCounter = 0;
+
+  const checkState = () => {
+    // Gemini is generating if:
+    // 1. There is a Stop/Interrupt button
+    // 2. The Send button is disabled
+    const sendBtn = document.querySelector('button[aria-label*="Send"], [data-test-id="send-button"]');
+    const stopBtn = document.querySelector('button[aria-label*="Stop"], [aria-label*="Interrupt"], [aria-label*="Interrupt generation"]');
+
+    const isGenerating = stopBtn || (sendBtn && sendBtn.disabled);
+
+    if (isGenerating) {
+      if (!generationStarted) {
+        console.log("Monitor: Generation START detected.");
+        generationStarted = true;
+      }
+      idleCounter = 0; // Reset counter whenever we see activity
+    } else {
+      // Not generating. 
+      if (generationStarted) {
+        // We saw it start, now it appears stopped.
+        // We need it to stay stopped for 15 consecutive checks (1.5s)
+        idleCounter++;
+        if (idleCounter >= 15) {
+          console.log("Monitor: Generation FINISH detected (sustained idle)!");
+          clearInterval(timer);
+          if (generationObserver) generationObserver.disconnect();
+          generationObserver = null;
+          sendResponse({ status: "finished" });
+          return true;
+        } else {
+          if (idleCounter % 5 === 0) console.log(`Monitor: Idle for ${idleCounter / 10}s...`);
+        }
+      } else {
+        // Haven't seen it start yet. Gemini might be slow.
+        pollCount++;
+        // Wait up to 10 seconds for it to start
+        if (pollCount > 100) {
+          console.log("Monitor: Never saw generation start. Safety timeout.");
+          clearInterval(timer);
+          if (generationObserver) generationObserver.disconnect();
+          generationObserver = null;
+          sendResponse({ status: "timeout_start" });
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  // Poll every 100ms
+  const timer = setInterval(() => {
+    checkState();
+  }, 100);
+
+  // Backup global timeout (5 minutes for slow image gens)
+  setTimeout(() => {
+    if (timer) clearInterval(timer);
+    if (generationObserver) {
+      generationObserver.disconnect();
+      generationObserver = null;
+      sendResponse({ status: "timeout_global" });
+    }
+  }, 300000);
+}
