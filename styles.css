@@ -264,3 +264,101 @@ button:active {
   color: #000;
   font-weight: bold;
 }
+
+/* Library Section */
+.library-section h3 {
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: #8b949e;
+  border-bottom: 1px solid var(--input-border);
+  padding-bottom: 5px;
+}
+
+.library-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.library-item {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  padding: 10px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.library-item:hover {
+  border-color: #8b949e;
+}
+
+.lib-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lib-item-name {
+  font-weight: bold;
+  font-size: 13px;
+  color: var(--accent-color);
+}
+
+.lib-item-date {
+  font-size: 10px;
+  color: #484f58;
+}
+
+.lib-item-text {
+  font-size: 11px;
+  color: #8b949e;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.lib-item-actions {
+  display: flex;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.lib-action-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--input-border);
+  background: #21262d;
+  color: #c9d1d9;
+}
+
+.lib-action-btn:hover {
+  background: #30363d;
+}
+
+.lib-action-btn.delete:hover {
+  background: #da3633;
+  border-color: #f85149;
+  color: #fff;
+}
+
+.empty-msg {
+  font-size: 12px;
+  color: #484f58;
+  text-align: center;
+  padding: 10px;
+}
+
+#favBtn .icon {
+  font-size: 1.4rem;
+}
+
+#favBtn.active .icon {
+  color: #f85149;
+}

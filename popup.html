@@ -18,6 +18,7 @@
     <div class="tab-nav">
       <button class="tab-btn active" data-tab="tab-image">Image Gen</button>
       <button class="tab-btn" data-tab="tab-video">Video Gen</button>
+      <button class="tab-btn" data-tab="tab-library">Library</button>
     </div>
 
     <!-- IMAGE TAB -->
@@ -90,12 +91,31 @@
       </button>
     </div>
 
+    <!-- LIBRARY TAB -->
+    <div id="tab-library" class="tab-content">
+      <div class="library-section">
+        <h3>❤️ Favorites</h3>
+        <div id="favList" class="library-list">
+          <div class="empty-msg">No favorites yet. Click the heart button to save a prompt.</div>
+        </div>
+      </div>
+      <div class="library-section" style="margin-top: 20px;">
+        <h3>🕒 History</h3>
+        <div id="historyList" class="library-list">
+          <div class="empty-msg">No history yet.</div>
+        </div>
+      </div>
+    </div>
+
     <div class="button-group">
+      <button id="favBtn" class="utility-btn" title="Save to Favorites">
+        <span class="icon">🤍</span>
+      </button>
       <button id="pasteBtn">
         <span class="icon">✨</span> Paste to Ask Gemini
       </button>
-      <button id="clearBtn" class="utility-btn">
-        <span class="icon">🗑️</span> Clear
+      <button id="clearBtn" class="utility-btn" title="Clear All">
+        <span class="icon">🗑️</span>
       </button>
     </div>
   </div>
