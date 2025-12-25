@@ -24,7 +24,7 @@
     <div id="tab-image" class="tab-content active">
       <div class="input-group">
         <label for="prompt1">Core Instruction</label>
-        <textarea id="prompt1">Create images 9:16 4K. Remove every text and human from the original image.</textarea>
+        <textarea id="prompt1">Create images 4K. Remove every text and human from the original image.</textarea>
       </div>
 
       <div class="input-group">
@@ -37,6 +37,15 @@
           <option value="Luxury Marble Countertop with Soft Lighting">Luxury Marble Countertop</option>
           <option value="Soft Bokeh Nature Scene at Golden Hour">Soft Bokeh Nature Scene</option>
         </select>
+      </div>
+
+      <div class="input-group">
+        <label>Aspect Ratio</label>
+        <div class="ratio-group">
+          <button type="button" class="ratio-btn" data-ratio="16:9">16:9</button>
+          <button type="button" class="ratio-btn" data-ratio="1:1">1:1</button>
+          <button type="button" class="ratio-btn active" data-ratio="9:16">9:16</button>
+        </div>
       </div>
 
       <div class="input-group">

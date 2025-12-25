@@ -19,6 +19,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const imagePreviewGrid = document.getElementById('imagePreviewGrid');
     const imageCountSpan = document.getElementById('imageCount');
 
+    // Aspect Ratio Logic
+    const ratioBtns = document.querySelectorAll('.ratio-btn');
+    let selectedRatio = '9:16';
+
+    ratioBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            ratioBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedRatio = btn.getAttribute('data-ratio');
+        });
+    });
+
     // Load stored images on panel open
     loadStoredImages();
 
@@ -82,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             combinedText = coreInstruction;
             if (background) combinedText += `\nBackground: ${background}`;
+            if (selectedRatio) combinedText += `\nAspect Ratio: ${selectedRatio}`;
             if (additionalDetails) combinedText += `\nAdditional Details: ${additionalDetails}`;
         } else if (activeTab === 'tab-video') {
             const videoInstruction = document.getElementById('videoPrompt').value.trim();

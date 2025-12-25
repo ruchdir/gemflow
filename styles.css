@@ -233,3 +233,34 @@ button:active {
   border-color: var(--accent-color);
   transform: scale(1.05);
 }
+
+/* Aspect Ratio Selector */
+.ratio-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.ratio-btn {
+  flex: 1;
+  padding: 8px 4px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: #8b949e;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.ratio-btn:hover {
+  border-color: #8b949e;
+  color: var(--text-color);
+}
+
+.ratio-btn.active {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: #000;
+  font-weight: bold;
+}
