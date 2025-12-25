@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GemFlow</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>GemFlow</h1>
+      <p>Streamline your Gemini workflow</p>
+    </header>
+
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="tab-image">Image Gen</button>
+      <button class="tab-btn" data-tab="tab-video">Video Gen</button>
+    </div>
+
+    <!-- IMAGE TAB -->
+    <div id="tab-image" class="tab-content active">
+      <div class="input-group">
+        <label for="prompt1">Core Instruction</label>
+        <textarea id="prompt1">Create images 9:16 4K. Remove every text and human from the original image.</textarea>
+      </div>
+
+      <div class="input-group">
+        <label for="bgSelect">Background Scene</label>
+        <select id="bgSelect">
+          <option value="Minimal Computer Desk in Studio Light">Minimal Computer Desk in Studio Light</option>
+          <option value="Balcony Sea View with a good light">Balcony Sea View with a good light</option>
+          <option value="Mountain with a good light">Mountain with a good light</option>
+          <option value="Modern Kitchen with a Studio Light">Modern Kitchen with a Studio Light</option>
+          <option value="Luxury Marble Countertop with Soft Lighting">Luxury Marble Countertop</option>
+          <option value="Soft Bokeh Nature Scene at Golden Hour">Soft Bokeh Nature Scene</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label for="prompt3">Additional Details</label>
+        <textarea id="prompt3" placeholder="e.g. Make the product center stage, high contrast..."></textarea>
+      </div>
+    </div>
+
+    <!-- VIDEO TAB -->
+    <div id="tab-video" class="tab-content">
+      <div class="input-group">
+        <label for="videoPrompt">Video Instruction</label>
+        <textarea id="videoPrompt" style="height: 120px;">Create a native vertical video (9:16) using the provided reference images. Sequence the scenes strictly in the order of
+        the uploaded images.Animate the transition from image to image smoothly.
+        
+        Technical Requirements:
+        
+        1. Output must be full-screen portrait orientation (e.g., 1080x1920) filling the entire screen edge-to-edge.
+        
+        2. Strictly DO NOT render a 16:9 landscape video with black bars or pillarboxing.
+        
+        3. No letterboxing; the content must cover the full vertical frame.</textarea>
+      </div>
+      <div class="input-group">
+        <label for="videoStyle">Style / Atmosphere</label>
+        <textarea id="videoStyle" placeholder="e.g. Cinematic, Slow motion, Upbeat..."></textarea>
+      </div>
+
+      <!-- Image Preview Area -->
+      <div class="input-group">
+        <label>Selected Images (<span id="imageCount">0</span>)</label>
+        <div id="imagePreviewGrid" class="image-preview-grid">
+          <div class="no-images">No images selected. Click "Open My Stuff Picker" to add images.</div>
+        </div>
+        <button id="clearImagesBtn" class="utility-btn" style="margin-top: 8px; display: none;">
+          🗑️ Clear All Images
+        </button>
+      </div>
+
+      <button id="myStuffBtn" class="secondary-btn" style="margin-top: 10px;">
+        <span class="icon">🖼️</span> Open My Stuff Picker
+      </button>
+    </div>
+
+    <div class="button-group">
+      <button id="pasteBtn">
+        <span class="icon">✨</span> Paste to Ask Gemini
+      </button>
+      <button id="clearBtn" class="utility-btn">
+        <span class="icon">🗑️</span> Clear
+      </button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+
+</html>
