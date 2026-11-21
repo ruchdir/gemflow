@@ -4,13 +4,13 @@ Streamline your Gemini workflow for AI image and video generation. A Chrome exte
 
 ## Features
 
-### 🖼️ Image Generation Tab
+### Image Generation Tab
 - **Pre-built prompt template** for product photography
 - **Background scene selector** with common options (Studio, Sea View, Kitchen, etc.)
 - **Additional details field** for customization
 - **One-click paste** to Gemini chat
 
-### 🎬 Video Generation Tab
+### Video Generation Tab
 - **Video prompt template** for vertical 9:16 video creation
 - **Style/Atmosphere field** for customization
 - **My Stuff Image Picker** - Select images from your Gemini gallery
