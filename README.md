@@ -1,5 +1,6 @@
 # GemFlow - Chrome Extension
 
+
 Streamline your Gemini workflow for AI image and video generation. A Chrome extension with a side panel interface for prompt management and image selection.
 
 ## Features
